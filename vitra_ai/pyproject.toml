@@ -1,0 +1,15 @@
+[project]
+name = "vitra-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.57.1",
+    "black>=25.1.0",
+    "google-adk>=1.7.0",
+    "google-generativeai>=0.8.5",
+    "litellm>=1.74.4",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+]
