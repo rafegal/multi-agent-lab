@@ -3,7 +3,7 @@ name = "vitra-ai"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.57.1",
     "black>=25.1.0",
@@ -12,4 +12,6 @@ dependencies = [
     "litellm>=1.74.4",
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.1",
 ]
