@@ -38,6 +38,9 @@ services:
       - app
     ports:
       - "8080:8080"
+    environment:
+      - AGENT_API_USERNAME=vitra_agent_user
+      - AGENT_API_PASSWORD=vitra_agent_password
     env_file:
       - .env
 
