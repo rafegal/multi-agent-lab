@@ -31,5 +31,15 @@ services:
     volumes:
       - ./vitra_ai:/app/vitra_ai
 
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    depends_on:
+      - app
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+
 volumes:
   postgres_data:
