@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project specific
+.env
+*.db
+*.sqlite3
+vitra_doc/

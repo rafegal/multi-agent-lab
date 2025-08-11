@@ -3,7 +3,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google.adk.runtime import SessionManager
 from vitra_ai.agent import root_agent
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = FastAPI()
 
