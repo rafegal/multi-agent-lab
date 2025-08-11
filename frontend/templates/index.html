@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vitra AI Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        #chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .chat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #34d399; /* emerald-400 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .chat-window {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-base-200">
+
+<div id="app">
+    <div id="chat-widget">
+        <!-- Chat Icon -->
+        <div v-if="!isChatOpen" @click="toggleChat" class="chat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+        </div>
+
+        <!-- Chat Window -->
+        <div v-if="isChatOpen" class="chat-window flex flex-col" :class="{ 'w-[28rem] h-[40rem] rounded-2xl shadow-xl': !isFullscreen, 'w-screen h-screen top-0 left-0 rounded-none': isFullscreen }">
+            <!-- Header -->
+            <div class="bg-emerald-400 text-white p-4 flex justify-between items-center rounded-t-2xl">
+                <h1 class="text-xl font-bold">Vitra AI</h1>
+                <div>
+                    <button @click="newSession" class="btn btn-sm btn-ghost" title="New Chat">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    </button>
+                    <button @click="toggleFullscreen" class="btn btn-sm btn-ghost" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+                        <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v4m0 0h-4m4 0l-5-5" /></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button @click="toggleChat" class="btn btn-sm btn-ghost" title="Close Chat">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div ref="chatMessages" class="flex-1 p-4 overflow-y-auto bg-base-100">
+                <div v-for="(message, index) in messages" :key="index" class="chat" :class="message.isUser ? 'chat-end' : 'chat-start'">
+                    <div class="chat-bubble" :class="message.isUser ? 'chat-bubble-primary' : 'chat-bubble-accent'" v-html="renderMarkdown(message.text)"></div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="p-4 bg-base-200 rounded-b-2xl">
+                <div class="flex">
+                    <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="input input-bordered w-full" />
+                    <button @click="sendMessage" class="btn btn-primary ml-2">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, nextTick } = Vue
+
+    createApp({
+        data() {
+            return {
+                messages: [],
+                newMessage: '',
+                isChatOpen: false,
+                isFullscreen: false,
+                sessionId: null
+            }
+        },
+        methods: {
+            toggleChat() {
+                this.isChatOpen = !this.isChatOpen;
+            },
+            async sendMessage() {
+                if (!this.newMessage.trim()) return;
+
+                const userMessage = this.newMessage;
+                this.messages.push({ text: userMessage, isUser: true });
+                this.newMessage = '';
+                this.scrollToBottom();
+
+                if (!this.sessionId) {
+                    await this.createSession();
+                }
+
+                if (!this.sessionId) {
+                     this.messages.push({ text: 'Error: Could not create a session. Please try again.', isUser: false });
+                     this.scrollToBottom();
+                     return;
+                }
+
+                try {
+                    const response = await fetch(`/api/sessions/${this.sessionId}/message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: userMessage })
+                    });
+                    if (!response.ok) throw new Error('Server error');
+                    const data = await response.json();
+                    this.messages.push({ text: data.response, isUser: false });
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    this.messages.push({ text: 'Error: Could not connect to the server.', isUser: false });
+                } finally {
+                    this.scrollToBottom();
+                }
+            },
+            async createSession() {
+                try {
+                    const response = await fetch('/api/sessions', { method: 'POST' });
+                    if (!response.ok) throw new Error('Failed to create session');
+                    const data = await response.json();
+                    this.sessionId = data.session_id;
+                    localStorage.setItem('sessionId', this.sessionId);
+                } catch (error) {
+                    console.error('Error creating session:', error);
+                    this.sessionId = null; // Ensure session ID is null on failure
+                    localStorage.removeItem('sessionId');
+                }
+            },
+            newSession() {
+                this.messages = [];
+                this.sessionId = null;
+                localStorage.removeItem('sessionId');
+                // A new session will be created automatically on the next message.
+                // Or we can create it immediately:
+                this.createSession().then(() => {
+                    this.messages.push({ text: 'New chat session started.', isUser: false});
+                });
+            },
+            toggleFullscreen() {
+                this.isFullscreen = !this.isFullscreen;
+            },
+            renderMarkdown(text) {
+                // Basic sanitation
+                const sanitizedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return marked.parse(sanitizedText || '');
+            },
+            scrollToBottom() {
+                nextTick(() => {
+                    const chatMessages = this.$refs.chatMessages;
+                    if (chatMessages) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                });
+            }
+        },
+        mounted() {
+            this.sessionId = localStorage.getItem('sessionId');
+            // Add a welcome message
+            this.messages.push({ text: "Hello! How can I help you today?", isUser: false });
+
+            // Example of how to embed the chat.
+            // In a real scenario, you would include this script in the target page.
+            // const script = document.createElement('script');
+            // script.src = 'http://localhost:8080/'; // URL to this app's script
+            // document.body.appendChild(script);
+        }
+    }).mount('#app')
+</script>
+
+</body>
+</html>
